@@ -1,37 +1,8 @@
 #include "ABE.h"
+#include "../App.h"
 #include <pbc/pbc.h>
 #include <iostream>
 
-void get_pairing()
-{
-    const char *param = "type a   \
-q 40132934874065581357639239301938089130039744463472639389591743372055069245229811691989086088125328594220615378634210894681862132537783020759006156856256486760853214375759294871087842511098137328669742901944483362556170153388301818039153709502326627974456159915072198235053718093631308481607762634120235579251 \
-h 5986502056676971303894401875152023968506744561211054886102595589603460071084910131070137261543726329935522867827513637124526300709663875599084261056444276 \
-r 6703903964971298549787012499102923063739682910296196688861780721860882015036773488400937149083451713845015929093243025426876941560715789883889358865432577 \
-exp2 511  \
-exp1 87   \
-sign1 1  \
-sign0 1";
 
-    // 初始化pbc_param_t
-    pbc_param_t par;
-    pbc_param_init_set_str(par, param);
 
-    // 初始化pairing_t
-    pairing_init_pbc_param(pairing, par);
 
-    printf("SET_STATIC_SIZE --- \n");
-    element_t zr, g1, g2, gt;
-    element_init_Zr(zr, pairing);
-    element_init_G1(g1, pairing);
-    element_init_G2(g2, pairing);
-    element_init_GT(gt, pairing);
-    element_random(zr);
-    element_random(g1);
-    element_random(g2);
-    element_random(gt);
-    ZR_SIZE = element_length_in_bytes(zr);
-    G1_SIZE = element_length_in_bytes(g1);
-    G2_SIZE = element_length_in_bytes(g2);
-    GT_SIZE = element_length_in_bytes(gt);
-}

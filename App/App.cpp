@@ -15,17 +15,10 @@
 #include "Enclave_u.h"
 
 #include "Server.h"
-#include "FileProcessor.h"
-#include "ABE.h"
-#include <pbc/pbc.h>
+#include "pbc/pbc.h"
 
-size_t ZR_SIZE = 0;
-size_t G1_SIZE = 0;
-size_t G2_SIZE = 0;
-size_t GT_SIZE = 0;
 size_t C1_len = 0;
 
-pairing_t pairing; // 定义全局 pairing 变量
 
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
@@ -169,7 +162,7 @@ void ocall_print_string(const char *str)
 void ocall_get_C1_len(size_t* out_C1_len) {
     if (out_C1_len) {
         *out_C1_len = C1_len;
-        printf("OCall: Returning C1_len = %zu\n", *out_C1_len);
+        //printf("OCall: Returning C1_len = %zu\n", *out_C1_len);
     }
 }
 void ocall_element_printf(uint8_t *buffer_g,size_t len_g,int addition){
@@ -210,53 +203,6 @@ void ocall_element_printf(uint8_t *buffer_g,size_t len_g,int addition){
     }
 }
 
-// 把 std::string 转换为 unsigned char*
-unsigned char* convertStringToUnsignedChar(std::string& str) {
-    size_t len = str.size();
-    unsigned char* buffer = (unsigned char*) malloc(len + 1);
-    if (!buffer) {
-        std::cerr << "Memory allocation failed" << std::endl;
-        return nullptr;
-    }
-    memcpy(buffer, str.c_str(), len);
-    buffer[len] = '\0';  // 确保以 NULL 结尾
-    return buffer;
-}
-
-void get_pairing(pairing_t pairing)
-{
-    const char *param = "type a   \
-    q 40132934874065581357639239301938089130039744463472639389591743372055069245229811691989086088125328594220615378634210894681862132537783020759006156856256486760853214375759294871087842511098137328669742901944483362556170153388301818039153709502326627974456159915072198235053718093631308481607762634120235579251 \
-    h 5986502056676971303894401875152023968506744561211054886102595589603460071084910131070137261543726329935522867827513637124526300709663875599084261056444276 \
-    r 6703903964971298549787012499102923063739682910296196688861780721860882015036773488400937149083451713845015929093243025426876941560715789883889358865432577 \
-    exp2 511  \
-    exp1 87   \
-    sign1 1  \
-    sign0 1";
-
-    // 初始化pbc_param_t
-    pbc_param_t par;
-    pbc_param_init_set_str(par, param);
-
-    // 初始化pairing_t
-    pairing_init_pbc_param(pairing, par);
-
-    printf("SET_STATIC_SIZE --- \n");
-    element_t zr, g1, g2, gt;
-    element_init_Zr(zr, pairing);
-    element_init_G1(g1, pairing);
-    element_init_G2(g2, pairing);
-    element_init_GT(gt, pairing);
-    element_random(zr);
-    element_random(g1);
-    element_random(g2);
-    element_random(gt);
-    ZR_SIZE = element_length_in_bytes(zr);
-    G1_SIZE = element_length_in_bytes(g1);
-    G2_SIZE = element_length_in_bytes(g2);
-    GT_SIZE = element_length_in_bytes(gt);
-}
-
 /* Application entry */
 int SGX_CDECL main(int argc, char *argv[]) {
     (void)(argc);
@@ -267,68 +213,8 @@ int SGX_CDECL main(int argc, char *argv[]) {
         return -1;
     }
 
-    //Server server("http://0.0.0.0:8080/Transform2");
-    //server.start();
-
-    std::string PTC_str, HK_str;
-    size_t PTC_len, HK_len,TC_len;
-    
-    FileProcessor::processFile("Transform2_received.txt", PTC_str, PTC_len, HK_str, HK_len, C1_len);
-
-    //std::cout << "PTC_str: " << PTC_str << std::endl;
-    std::cout << "PTC_len: " << PTC_len << std::endl;
-    //std::cout << "HK_str: " << HK_str << std::endl;
-    std::cout << "HK_len: " << HK_len << std::endl;
-    std::cout << "C1_len: " << C1_len << std::endl;
-   
-
-    // 调用 get_pairing 函数初始化 pairing
-    get_pairing(pairing);
-
-    // 打印 GT_SIZE
-    cout << "GT_SIZE: " << GT_SIZE << endl;
-    TC_len=C1_len + GT_SIZE + GT_SIZE;
-
-    // 调用 Enclave 中的函数
-    // 转换 std::string 为 unsigned char*
-    unsigned char* PTC_buf = convertStringToUnsignedChar(PTC_str);
-    unsigned char* HK_buf = convertStringToUnsignedChar(HK_str);
-    unsigned char* TC_buf = (unsigned char*) malloc(TC_len);  // 预分配
-
-    if (!PTC_buf || !HK_buf || !TC_buf) {
-        std::cerr << "Memory allocation failed." << std::endl;
-        return -1;
-    }
-
-    //调用 SGX Enclave
-    sgx_status_t ret = transform2(global_eid, &TC_buf, &TC_len, &HK_buf, &HK_len, &PTC_buf, &PTC_len);
-    if (ret != SGX_SUCCESS) {
-        printf("Error: Transform2 failed.\n");
-        return -1;
-    }
-
-    // // **提取最后 1 字节的 reg**
-    // uint8_t reg = TC_buf[TC_len - 1];  
-
-    // // **根据 reg 的值判断 Transform2 执行情况**
-    // if (reg == 1) {
-    //     printf("Transform2 executed successfully.\n");
-    // } else {
-    //     printf("Transform2 execution failed.\n");
-    // }
-    // printf("TC_buf content (hex): ");
-    // for (size_t i = 0; i < TC_len; i++) {
-    //     printf("%02X ", TC_buf[i]);  // 以 16 进制格式打印
-    // }
-    // printf("\n");
-
-
-    // 释放分配的内存
-    free(PTC_buf);
-    free(HK_buf);
-    free(TC_buf);
-
-   
+    Server server("http://0.0.0.0:8080/Transform2");
+    server.start();
 
     sgx_destroy_enclave(global_eid);
     printf("Enclave destroyed.\n");

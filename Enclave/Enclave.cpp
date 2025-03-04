@@ -79,27 +79,51 @@ void deserl_HK(element_t& gamma_1 ,element_t& gamma_2, unsigned char* str, size_
 void deserl_PTC(element_t& C0, unsigned char* C1, size_t C1_size, element_t& CP1, element_t& CP2, unsigned char* str, size_t str_count)
 {
     unsigned char* pointer = str;
-    memcpy(C1, pointer, C1_size);
-    pointer += C1_size;
+    
+    // 按照 C0, C1, CP1, CP2 的顺序提取
     element_from_bytes(C0, pointer);
     pointer += GT_SIZE;
+
+    memcpy(C1, pointer, C1_size);
+    pointer += C1_size;
+
     element_from_bytes(CP1, pointer);
     pointer += GT_SIZE;
+
     element_from_bytes(CP2, pointer);
 }
+
 
 // struct TC -> string
 void serl_TC(unsigned char** str, size_t* str_count, element_t T0, unsigned char* T1, size_t T1_size, element_t T2)
 {
     unsigned char* pointer = *str;
+
+    // 用两个字节存储 T1_size（大端序）
+    pointer[0] = (T1_size >> 8) & 0xFF;  // 高字节
+    pointer[1] = T1_size & 0xFF;          // 低字节
+    pointer += 2;  // 移动指针
+
+    // 按照 T0, T1, T2 的顺序存储
+    int T0_size = element_length_in_bytes(T0);
+    int T2_size = element_length_in_bytes(T2);
+
+    element_to_bytes(pointer, T0);
+    pointer += T0_size;
+
     memcpy(pointer, T1, T1_size);
     pointer += T1_size;
-    element_to_bytes(pointer, T0);
-    pointer += element_length_in_bytes(T0);
+
     element_to_bytes(pointer, T2);
+    pointer += T2_size;
+
+    // 更新 str_count 的大小
+    *str_count = 2 + T0_size + T1_size + T2_size;  // 2 字节用于存储 T1_size
 }
 
-void transform2(unsigned char** tc_str, size_t* tc_str_count,
+
+
+void transform2(unsigned char** tc_str, size_t* tc_str_count, size_t* flag,
                  unsigned char** hk_str, size_t* hk_str_count,
                  unsigned char** ptc_str, size_t* ptc_str_count)
 {
@@ -138,24 +162,18 @@ void transform2(unsigned char** tc_str, size_t* tc_str_count,
     element_set(T2, result_1);
 
     // 计算比对结果
-    uint8_t reg = (element_cmp(result_1, result_2) == 0) ? 1 : 0;
-    printf("Transform2 %s\n", reg ? "succeed!" : "failed!");
+    *flag = (element_cmp(result_1, result_2) == 0) ? 1 : 0;
+    if(*flag == 1){
+        printf("The two results are equal\n");
+    }else{
+        printf("The two results are not equal\n");
+    }
 
     // **先调用 serl_TC 进行序列化**
     serl_TC(tc_str, tc_str_count, T0, T1, C1_len, T2);
 
-    // // **重新分配 tc_str 以增加 1 字节存储 reg**
-    // *tc_str = (unsigned char*)realloc(*tc_str, *tc_str_count + 1);
-    // if (!(*tc_str)) {
-    //     printf("Memory reallocation for tc_str failed!\n");
-    //     return;
-    // }
+    // 重新分配 tc_str 以增加 1 字节存储 reg
 
-    // // **将 reg 存入最后 1 字节**
-    // (*tc_str)[*tc_str_count] = reg;
-
-    // // **更新 tc_str_count**
-    // *tc_str_count += 1;
 
     element_clear(gamma_1);
     element_clear(gamma_2);

@@ -2,6 +2,7 @@
 #include <bitset>
 #include <algorithm>
 #include <cstring>
+#include <iostream>
 
 
 // Base64 解码表
@@ -67,7 +68,6 @@ bool isBinaryString(const string& str) {
 }
 
 // 读取文件并转换每一行数据并拼接到一起
-// 读取文件并转换每一行数据并拼接到一起
 void FileProcessor::processFile(const string& filePath, string& PTC_str, size_t& PTC_len, string& HK_str, size_t& HK_len, size_t& C1_len) {
     ifstream file(filePath);
     if (!file) {
@@ -86,12 +86,11 @@ void FileProcessor::processFile(const string& filePath, string& PTC_str, size_t&
         }
 
         vector<unsigned char> decodedBytes;
-        if (isBinaryString(line)) {
-            decodedBytes.assign(line.begin(), line.end());  // 直接转换成字节流
+        decodedBytes = base64_decode(line);  // Base64 解码得到字节流   
+        if (i==1) {
+            //decodedBytes.assign(line.begin(), line.end());  // 直接转换成字节流
             C1_len = decodedBytes.size();  // 计算 C1 的字节数
-        } else {
-            decodedBytes = base64_decode(line);  // Base64 解码得到字节流
-        }
+        } 
 
         // 前 4 行拼接到 PTC_str
         if (i < 4) {

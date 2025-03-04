@@ -26,12 +26,17 @@ extern sgx_enclave_id_t global_eid;    /* global enclave id */
 extern "C" {
 #endif
 //放函数声
+
+void get_pairing(pairing_t pairing);
+void get_transform2(unsigned char** out, size_t* out_len);
+unsigned char* convertStringToUnsignedChar(std::string& str);
+
+extern size_t C1_len;
+extern size_t flag;
 extern size_t ZR_SIZE;
 extern size_t G1_SIZE;
 extern size_t G2_SIZE;
 extern size_t GT_SIZE;
-extern size_t C1_len;
-void get_pairing(pairing_t pairing);    
 
 #if defined(__cplusplus)
 }
